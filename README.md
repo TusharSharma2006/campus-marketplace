@@ -388,8 +388,8 @@ If you like this project:
 
 For suggestions or collaboration:
 
-* GitHub: `your-github-username`
-* Email: `your-email@example.com`
+* GitHub: `TusharSharma2006`
+* Email: `tustustefg@gmail.com`
 
 ---
 
