@@ -12,16 +12,41 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
     if (!email.endsWith('.edu')) {
       setError('Please sign up using your official institutional .edu email.');
       return;
     }
-    
-    // Redirect to simulated OTP verification page
-    router.push(`/verify?email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`);
+
+    try {
+      setIsLoading(true);
+
+      const response = await fetch('http://localhost:5000/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed.');
+      }
+
+      alert('Account created successfully in backend database! Redirecting to sign in.');
+      router.push('/login');
+
+    } catch (err: any) {
+      console.error("Signup Server Error:", err);
+      setError(err.message || 'Could not reach backend database server.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -66,6 +91,7 @@ export default function SignupPage() {
               <input
                 type="text"
                 required
+                disabled={isLoading}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Alex Rivera"
@@ -84,6 +110,7 @@ export default function SignupPage() {
               <input
                 type="email"
                 required
+                disabled={isLoading}
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 placeholder="alex.rivera@university.edu"
@@ -102,6 +129,7 @@ export default function SignupPage() {
               <input
                 type="password"
                 required
+                disabled={isLoading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 8 characters"
@@ -115,6 +143,7 @@ export default function SignupPage() {
             <input
               type="checkbox"
               required
+              disabled={isLoading}
               className="h-4 w-4 rounded text-brand-blue border-gray-350 focus:ring-brand-blue mt-0.5"
             />
             <span className="text-[10px] text-gray-500 font-semibold leading-normal">
@@ -125,9 +154,10 @@ export default function SignupPage() {
           {/* Submit */}
           <button
             type="submit"
-            className="w-full rounded-xl bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 py-3 text-xs font-bold transition-all shadow-md"
+            disabled={isLoading}
+            className="w-full rounded-xl bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 py-3 text-xs font-bold transition-all shadow-md disabled:opacity-50"
           >
-            Create Account
+            {isLoading ? 'Creating Account...' : 'Create Account'}
           </button>
         </form>
 
