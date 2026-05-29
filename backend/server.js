@@ -140,6 +140,137 @@ app.get("/api/protected-test", authMiddleware, (req, res) => {
   });
 });
 
+
+// ==========================================
+//        PHASE 2: MARKETPLACE ROUTES
+// ==========================================
+
+/**
+ * ROUTE 4: CREATE A NEW CAMPUS LISTING
+ * Secure route: Uses authMiddleware to verify the user before letting them sell an item
+ */
+app.post("/api/listings", authMiddleware, async (req, res) => {
+  const { title, description, price, category, image_url } = req.body;
+  
+  // Extracted dynamically from the verified JWT payload inside authMiddleware
+  const seller_id = req.user.id; 
+
+  // Basic validation check
+  if (!title || !description || !price || !category) {
+    return res.status(400).json({ error: "Please fill out all required fields (title, description, price, category)" });
+  }
+
+  try {
+    const newListing = await db.query(
+      `INSERT INTO listings (title, description, price, category, image_url, seller_id) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING id, title, description, price, category, image_url, seller_id, status, created_at`,
+      [title, description, parseFloat(price), category, image_url || null, seller_id]
+    );
+
+    res.status(201).json({
+      message: "Listing posted successfully on Campus Marketplace!",
+      listing: newListing.rows[0]
+    });
+
+  } catch (err) {
+    console.error("Error creating listing:", err.message);
+    res.status(500).json({ error: "Internal server database error while creating listing" });
+  }
+});
+
+/**
+ * ROUTE 5 (UPGRADED): FETCH ALL ACTIVE LISTINGS (WITH OPTIONAL CATEGORY FILTER)
+ * Public route: Supports custom query filter parameters like /api/listings?category=Books
+ */
+app.get("/api/listings", async (req, res) => {
+  const { category } = req.query;
+
+  try {
+    let queryText = `
+      SELECT listings.*, users.name as seller_name, users.email as seller_email 
+      FROM listings 
+      JOIN users ON listings.seller_id = users.id 
+      WHERE listings.status = 'available'
+    `;
+    const queryParams = [];
+
+    // If a category query filter is present, securely append it to the parameterized query array
+    if (category) {
+      queryText += ` AND listings.category = $1`;
+      queryParams.push(category);
+    }
+
+    queryText += ` ORDER BY listings.created_at DESC`;
+
+    const activeListings = await db.query(queryText, queryParams);
+    res.status(200).json(activeListings.rows);
+
+  } catch (err) {
+    console.error("Error fetching listings:", err.message);
+    res.status(500).json({ error: "Internal server database error while fetching listings" });
+  }
+});
+
+/**
+ * ROUTE 6: FETCH A SINGLE LISTING BY ID
+ * Public route: Fetches details for an individual item card layout view
+ */
+app.get("/api/listings/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const listing = await db.query(
+      `SELECT listings.*, users.name as seller_name, users.email as seller_email 
+       FROM listings 
+       JOIN users ON listings.seller_id = users.id 
+       WHERE listings.id = $1`,
+      [id]
+    );
+
+    if (listing.rows.length === 0) {
+      return res.status(404).json({ error: "Listing not found" });
+    }
+
+    res.status(200).json(listing.rows[0]);
+  } catch (err) {
+    console.error("Error fetching single listing:", err.message);
+    res.status(500).json({ error: "Internal server database error" });
+  }
+});
+
+/**
+ * ROUTE 7: DELETE A LISTING (SECURE OWNER ENFORCEMENT)
+ * Secure route: Verifies user token integrity and prevents unauthorized deletions
+ */
+app.delete("/api/listings/:id", authMiddleware, async (req, res) => {
+  const { id } = req.params;
+  const current_user_id = req.user.id;
+
+  try {
+    // 1. Fetch listing entry to assess who owns it
+    const listingCheck = await db.query("SELECT seller_id FROM listings WHERE id = $1", [id]);
+
+    if (listingCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Listing not found" });
+    }
+
+    // 2. Safety Check: Enforce data casting type equality matching
+    if (parseInt(listingCheck.rows[0].seller_id) !== parseInt(current_user_id)) {
+      return res.status(403).json({ error: "Unauthorized! You can only delete your own listings." });
+    }
+
+    // 3. Execution
+    await db.query("DELETE FROM listings WHERE id = $1", [id]);
+    res.status(200).json({ message: "Listing deleted successfully!" });
+
+  } catch (err) {
+    console.error("Error deleting listing:", err.message);
+    res.status(500).json({ error: "Internal server database error" });
+  }
+});
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
