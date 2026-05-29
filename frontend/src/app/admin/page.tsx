@@ -6,6 +6,7 @@ import { useApp } from '@/context/AppContext';
 import { mockUsers, User, Product } from '@/data/mockData';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { 
   ShieldCheck, AlertTriangle, Users, BookOpen, Ban, Check, Trash2, 
   TrendingUp, ArrowRight, ShieldAlert, BarChart3, AlertCircle 
@@ -120,8 +121,9 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-black dark:bg-brand-dark dark:text-white transition-colors duration-200">
-      <Navbar />
+    <ProtectedRoute>
+      <div className="flex flex-col min-h-screen bg-white text-black dark:bg-brand-dark dark:text-white transition-colors duration-200">
+        <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-8">
         
@@ -443,7 +445,8 @@ export default function AdminPage() {
 
         </div>
       </main>
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </ProtectedRoute>
   );
 }

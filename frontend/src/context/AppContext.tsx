@@ -26,7 +26,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(mockUsers[0]); // Alex Rivera logged in by default
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [wishlist, setWishlist] = useState<string[]>(['prod_3', 'prod_7']); // Initial wishlisted items
   const [chats, setChats] = useState<Chat[]>(mockChats);
@@ -34,6 +34,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [bannedUsers, setBannedUsers] = useState<string[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>(mockUsers);
+
+  // Restore session from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      if (storedUser && token) {
+        try {
+          setCurrentUser(JSON.parse(storedUser));
+        } catch (e) {
+          console.error('Failed to parse stored user:', e);
+        }
+      }
+    }
+  }, []);
+
+  const handleSetCurrentUser = (user: User | null) => {
+    setCurrentUser(user);
+    if (typeof window !== 'undefined') {
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+        if (!localStorage.getItem('token')) {
+          localStorage.setItem('token', 'simulated-token');
+        }
+      } else {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+      }
+    }
+  };
 
   // Toggle Item in Wishlist
   const toggleWishlist = (productId: string) => {
@@ -270,7 +300,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         chats,
         notifications,
         activeChatId,
-        setCurrentUser,
+        setCurrentUser: handleSetCurrentUser,
         toggleWishlist,
         addListing,
         sendMessage,

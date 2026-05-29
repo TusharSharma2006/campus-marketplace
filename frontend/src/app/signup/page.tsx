@@ -4,9 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { KeyRound, Mail, User, AlertCircle } from 'lucide-react';
+import axios from 'axios';
+import { useApp } from '@/context/AppContext';
 
 export default function SignupPage() {
   const router = useRouter();
+  const { setCurrentUser } = useApp();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,32 +21,71 @@ export default function SignupPage() {
     e.preventDefault();
     setError('');
 
+    // Explicit Form Validations
+    if (!name.trim()) {
+      setError('Full Name is required.');
+      return;
+    }
+
+    if (!email.trim()) {
+      setError('Email is required.');
+      return;
+    }
+
     if (!email.endsWith('.edu')) {
       setError('Please sign up using your official institutional .edu email.');
+      return;
+    }
+
+    if (!password) {
+      setError('Password is required.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
       return;
     }
 
     try {
       setIsLoading(true);
 
-      const response = await fetch('http://localhost:5000/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+      const response = await axios.post('http://localhost:5000/api/register', {
+        name: name.trim(),
+        email: email.trim(),
+        password
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed.');
+      // Save token if returned by backend
+      if (data.token) {
+        localStorage.setItem('token', data.token);
       }
 
-      alert('Account created successfully in backend database! Redirecting to sign in.');
-      router.push('/login');
+      // Automatically log the user in
+      if (data.user) {
+        setCurrentUser({
+          id: data.user.id || `user_${Date.now()}`,
+          name: data.user.name || name.trim(),
+          email: data.user.email || email.trim(),
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120',
+          isVerified: true,
+          rating: 5.0,
+          reviewsCount: 0,
+          joinedDate: 'May 2026',
+          listingsCount: 0,
+          campus: 'Main Campus'
+        });
+      }
+
+      alert('Account created successfully! Redirecting to dashboard.');
+      router.push('/dashboard');
 
     } catch (err: any) {
       console.error("Signup Server Error:", err);
-      setError(err.message || 'Could not reach backend database server.');
+      const errMsg = err.response?.data?.error || err.message || 'Could not reach backend database server.';
+      setError(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -55,9 +97,6 @@ export default function SignupPage() {
       {/* Brand Header */}
       <div className="mb-6 flex flex-col items-center">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-blue to-brand-purple text-white font-bold shadow-sm">
-            C
-          </span>
           <span className="text-xl font-extrabold tracking-tight">
             Campus<span className="text-brand-blue">Mart</span>
           </span>
@@ -95,7 +134,7 @@ export default function SignupPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Alex Rivera"
-                className="w-full rounded-xl border border-gray-250 bg-gray-50 py-2.5 pl-9 pr-3 text-xs outline-none focus:border-brand-blue focus:bg-white dark:border-gray-800 dark:bg-gray-850"
+                className="w-full rounded-xl border border-gray-250 bg-gray-50 py-2.5 pl-9 pr-3 text-xs text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-brand-blue focus:bg-white dark:focus:bg-gray-800 dark:border-gray-800 dark:bg-gray-850"
               />
             </div>
           </div>
@@ -114,7 +153,7 @@ export default function SignupPage() {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 placeholder="alex.rivera@university.edu"
-                className="w-full rounded-xl border border-gray-255 bg-gray-50 py-2.5 pl-9 pr-3 text-xs outline-none focus:border-brand-blue focus:bg-white dark:border-gray-800 dark:bg-gray-850"
+                className="w-full rounded-xl border border-gray-255 bg-gray-50 py-2.5 pl-9 pr-3 text-xs text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-brand-blue focus:bg-white dark:focus:bg-gray-800 dark:border-gray-800 dark:bg-gray-850"
               />
             </div>
           </div>
@@ -133,7 +172,7 @@ export default function SignupPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 8 characters"
-                className="w-full rounded-xl border border-gray-250 bg-gray-50 py-2.5 pl-9 pr-3 text-xs outline-none focus:border-brand-blue focus:bg-white dark:border-gray-800 dark:bg-gray-850"
+                className="w-full rounded-xl border border-gray-250 bg-gray-50 py-2.5 pl-9 pr-3 text-xs text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-brand-blue focus:bg-white dark:focus:bg-gray-800 dark:border-gray-800 dark:bg-gray-850"
               />
             </div>
           </div>

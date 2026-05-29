@@ -8,6 +8,7 @@ import { mockUsers, mockProducts, User, Product, Chat } from '@/data/mockData';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PaymentModal from '@/components/PaymentModal';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import { 
   Send, Search, MessageSquare, ShieldCheck, ChevronLeft, 
   ExternalLink, Lock, AlertTriangle, CheckCircle2, MoreVertical
@@ -391,17 +392,19 @@ function ChatContent() {
 
 export default function ChatPage() {
   return (
-    <Suspense fallback={
-      <div className="flex flex-col min-h-screen bg-white text-black dark:bg-brand-dark dark:text-white transition-colors duration-200">
-        <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="h-8 w-8 border-4 border-black border-t-transparent rounded-full animate-spin dark:border-white mb-3" />
-          <p className="text-xs font-bold text-gray-550">Loading messenger...</p>
+    <ProtectedRoute>
+      <Suspense fallback={
+        <div className="flex flex-col min-h-screen bg-white text-black dark:bg-brand-dark dark:text-white transition-colors duration-200">
+          <Navbar />
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+            <div className="h-8 w-8 border-4 border-black border-t-transparent rounded-full animate-spin dark:border-white mb-3" />
+            <p className="text-xs font-bold text-gray-550">Loading messenger...</p>
+          </div>
+          <Footer />
         </div>
-        <Footer />
-      </div>
-    }>
-      <ChatContent />
-    </Suspense>
+      }>
+        <ChatContent />
+      </Suspense>
+    </ProtectedRoute>
   );
 }

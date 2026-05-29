@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { KeyRound, Mail, AlertCircle } from 'lucide-react';
+import axios from 'axios';
 
 export default function LoginPage() {
   const { setCurrentUser } = useApp();
@@ -19,25 +20,36 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     
+    // Explicit Form Validations
+    if (!email.trim()) {
+      setError('Email is required.');
+      return;
+    }
+
     if (!email.endsWith('.edu')) {
       setError('Please log in using a valid institutional .edu email.');
+      return;
+    }
+
+    if (!password) {
+      setError('Password is required.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long.');
       return;
     }
 
     try {
       setIsLoading(true);
       
-      const response = await fetch('http://localhost:5000/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const response = await axios.post('http://localhost:5000/api/login', {
+        email: email.trim(),
+        password
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Invalid login credentials.');
-      }
+      const data = response.data;
 
       // Save valid backend JSON Web Token securely to Local Storage
       if (data.token) {
@@ -47,9 +59,16 @@ export default function LoginPage() {
       // Update application session context with database row identifiers
       if (data.user) {
         setCurrentUser({
-          id: data.user.id,
-          name: data.user.name,
+          id: data.user.id || `user_${Date.now()}`,
+          name: data.user.name || 'Campus Student',
           email: data.user.email,
+          avatar: data.user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120',
+          isVerified: true,
+          rating: 5.0,
+          reviewsCount: 0,
+          joinedDate: 'May 2026',
+          listingsCount: 0,
+          campus: 'Main Campus'
         });
       }
 
@@ -57,7 +76,8 @@ export default function LoginPage() {
 
     } catch (err: any) {
       console.error("Login Server Error:", err);
-      setError(err.message || 'Connecting to backend failed. Is your server running?');
+      const errMsg = err.response?.data?.error || err.message || 'Connecting to backend failed. Is your server running?';
+      setError(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -69,9 +89,6 @@ export default function LoginPage() {
       {/* Brand Header */}
       <div className="mb-6 flex flex-col items-center">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-blue to-brand-purple text-white font-bold shadow-sm">
-            C
-          </span>
           <span className="text-xl font-extrabold tracking-tight">
             Campus<span className="text-brand-blue">Mart</span>
           </span>
@@ -109,7 +126,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 placeholder="you@university.edu"
-                className="w-full rounded-xl border border-gray-250 bg-gray-50 py-2.5 pl-9 pr-3 text-xs outline-none focus:border-brand-blue focus:bg-white dark:border-gray-800 dark:bg-gray-850"
+                className="w-full rounded-xl border border-gray-250 bg-gray-50 py-2.5 pl-9 pr-3 text-xs text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-brand-blue focus:bg-white dark:focus:bg-gray-800 dark:border-gray-800 dark:bg-gray-850"
               />
             </div>
           </div>
@@ -133,7 +150,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full rounded-xl border border-gray-250 bg-gray-50 py-2.5 pl-9 pr-3 text-xs outline-none focus:border-brand-blue focus:bg-white dark:border-gray-800 dark:bg-gray-850"
+                className="w-full rounded-xl border border-gray-250 bg-gray-50 py-2.5 pl-9 pr-3 text-xs text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-brand-blue focus:bg-white dark:focus:bg-gray-800 dark:border-gray-800 dark:bg-gray-850"
               />
             </div>
           </div>
