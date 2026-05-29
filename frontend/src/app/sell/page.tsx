@@ -11,6 +11,7 @@ import { useApp } from '@/context/AppContext';
 import { mockCategories, Product } from '@/data/mockData';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Quick Unsplash image templates to help students test publishing easily
 const sampleImages = [
@@ -112,8 +113,9 @@ export default function SellProductPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-black dark:bg-brand-dark dark:text-white transition-colors duration-200">
-      <Navbar />
+    <ProtectedRoute>
+      <div className="flex flex-col min-h-screen bg-white text-black dark:bg-brand-dark dark:text-white transition-colors duration-200">
+        <Navbar />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         
@@ -463,7 +465,8 @@ export default function SellProductPage() {
 
       </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </ProtectedRoute>
   );
 }

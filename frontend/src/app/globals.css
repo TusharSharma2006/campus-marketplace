@@ -15,6 +15,20 @@
   --color-brand-dark: #111827;
   --color-brand-light: #f9fafb;
   
+  /* Custom Intermediate Colors */
+  --color-gray-55: #f6f8fa;
+  --color-gray-150: #e5e7eb;
+  --color-gray-250: #d1d5db;
+  --color-gray-255: #cbd5e1;
+  --color-gray-350: #9ca3af;
+  --color-gray-405: #9ca3af;
+  --color-gray-450: #6b7280;
+  --color-gray-650: #4b5563;
+  --color-gray-655: #374151;
+  --color-gray-850: #1b2330;
+  --color-gray-855: #18202c;
+  --color-gray-955: #030712;
+  
   --font-sans: var(--font-geist-sans), Arial, sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 }

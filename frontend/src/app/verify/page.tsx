@@ -161,9 +161,6 @@ export default function VerifyPage() {
       {/* Brand Header */}
       <div className="mb-6 flex flex-col items-center">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-blue to-brand-purple text-white font-bold shadow-sm">
-            C
-          </span>
           <span className="text-xl font-extrabold tracking-tight">
             Campus<span className="text-brand-blue">Mart</span>
           </span>
@@ -214,7 +211,7 @@ export default function VerifyPage() {
                       onChange={(e) => { setEmail(e.target.value); setError(''); }}
                       placeholder="alex.rivera@university.edu"
                       disabled={currentUser !== null}
-                      className="w-full rounded-xl border border-gray-250 bg-gray-50 py-3 pl-10 pr-3 text-xs outline-none focus:border-brand-blue focus:bg-white dark:border-gray-800 dark:bg-gray-850 disabled:opacity-75 disabled:cursor-not-allowed"
+                      className="w-full rounded-xl border border-gray-250 bg-gray-50 py-3 pl-10 pr-3 text-xs text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-brand-blue focus:bg-white dark:focus:bg-gray-800 dark:border-gray-800 dark:bg-gray-850 disabled:opacity-75 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -284,7 +281,7 @@ export default function VerifyPage() {
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(idx, e)}
                       onPaste={idx === 0 ? handlePaste : undefined}
-                      className="w-12 h-14 text-center text-lg font-bold rounded-xl border border-gray-250 bg-gray-50 focus:border-brand-blue focus:bg-white outline-none dark:border-gray-800 dark:bg-gray-850"
+                      className="w-12 h-14 text-center text-lg font-bold rounded-xl border border-gray-250 bg-gray-50 text-black dark:text-white outline-none focus:border-brand-blue focus:bg-white dark:focus:bg-gray-800 dark:border-gray-800 dark:bg-gray-850"
                     />
                   ))}
                 </div>

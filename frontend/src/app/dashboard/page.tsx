@@ -12,6 +12,7 @@ import { useApp } from '@/context/AppContext';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import ProductCard from '@/components/ProductCard';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 type TabType = 'listings' | 'wishlist' | 'notifications' | 'settings';
 
@@ -77,8 +78,9 @@ export default function UserDashboard() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-black dark:bg-brand-dark dark:text-white transition-colors duration-200">
-      <Navbar />
+    <ProtectedRoute>
+      <div className="flex flex-col min-h-screen bg-white text-black dark:bg-brand-dark dark:text-white transition-colors duration-200">
+        <Navbar />
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         
@@ -354,7 +356,8 @@ export default function UserDashboard() {
 
       </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </ProtectedRoute>
   );
 }
