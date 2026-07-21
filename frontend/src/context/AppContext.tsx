@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client';
 import { Product, User, Chat, Notification, Message, mockProducts, mockUsers, mockChats, mockNotifications } from '../data/mockData';
 
 interface AppContextType {
@@ -34,6 +35,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [bannedUsers, setBannedUsers] = useState<string[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>(mockUsers);
+  const socketRef = useRef<Socket | null>(null);
 
   // Restore session from localStorage on mount
   useEffect(() => {
@@ -49,6 +51,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
   }, []);
+
+  // Connect to Socket.io when user is present
+  useEffect(() => {
+    if (!currentUser) return;
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const socket = io(backendUrl, { transports: ['websocket', 'polling'] });
+      socketRef.current = socket;
+      socket.emit('join', currentUser.id);
+
+      socket.on('receiveMessage', (payload: any) => {
+        // payload: { senderId, message, listingId, timestamp }
+        const { senderId, message, listingId, timestamp } = payload;
+        // find or create a chat thread for this product between currentUser and sender
+        const otherId = senderId;
+        setChats(prev => {
+          // try to find chat with these participants (mock logic)
+          const existing = prev.find(c => c.sellerId === otherId || c.buyerId === otherId);
+          if (existing) {
+            const newMsg: Message = { id: `msg_${Date.now()}`, senderId, text: message, timestamp };
+            return prev.map(c => c.id === existing.id ? { ...c, messages: [...c.messages, newMsg], lastMessageTime: timestamp, unreadCount: c.id === activeChatId ? 0 : c.unreadCount + 1 } : c);
+          }
+          // otherwise create new chat
+          const newChat: Chat = {
+            id: `chat_${Date.now()}`,
+            productId: listingId || 'unknown',
+            buyerId: currentUser.id,
+            sellerId: otherId,
+            unreadCount: 1,
+            lastMessageTime: timestamp,
+            messages: [{ id: `msg_${Date.now()}`, senderId, text: message, timestamp }]
+          };
+          return [newChat, ...prev];
+        });
+      });
+
+      socket.on('connect_error', (err:any) => {
+        console.warn('Socket connect error:', err.message);
+      });
+
+      return () => {
+        socket.disconnect();
+        socketRef.current = null;
+      };
+    } catch (e) {
+      console.error('Socket init failed:', e);
+    }
+  }, [currentUser]);
 
   const handleSetCurrentUser = (user: User | null) => {
     setCurrentUser(user);
@@ -168,6 +218,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       timestamp: new Date().toISOString()
     };
 
+    // Add locally immediately
     setChats((prevChats) => {
       return prevChats.map((chat) => {
         if (chat.id === chatId) {
@@ -182,52 +233,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     });
 
-    // Simulate mock seller/buyer reply after 2 seconds
+    // Emit to socket if connected, otherwise fallback to mock reply
+    const socket = socketRef.current;
     const chat = chats.find(c => c.id === chatId);
     if (!chat) return;
-
     const recipientId = chat.sellerId === currentUser.id ? chat.buyerId : chat.sellerId;
-    const recipientName = mockUsers.find(u => u.id === recipientId)?.name || 'Seller';
 
-    setTimeout(() => {
-      const responseText = getMockResponse(text, recipientName);
-      const mockReply: Message = {
-        id: `msg_${Date.now() + 1}`,
-        senderId: recipientId,
-        text: responseText,
-        timestamp: new Date().toISOString()
-      };
+    if (socket && socket.connected) {
+      socket.emit('sendMessage', { senderId: currentUser.id, receiverId: recipientId, message: text, listingId: chat.productId });
+    } else {
+      // Simulate a reply locally
+      const recipientName = mockUsers.find(u => u.id === recipientId)?.name || 'Seller';
+      setTimeout(() => {
+        const responseText = getMockResponse(text, recipientName);
+        const mockReply: Message = {
+          id: `msg_${Date.now() + 1}`,
+          senderId: recipientId,
+          text: responseText,
+          timestamp: new Date().toISOString()
+        };
 
-      setChats((prevChats) => {
-        return prevChats.map((c) => {
-          if (c.id === chatId) {
-            return {
-              ...c,
-              messages: [...c.messages, mockReply],
-              lastMessageTime: new Date().toISOString(),
-              unreadCount: activeChatId === chatId ? 0 : c.unreadCount + 1
-            };
-          }
-          return c;
+        setChats((prevChats) => {
+          return prevChats.map((c) => {
+            if (c.id === chatId) {
+              return {
+                ...c,
+                messages: [...c.messages, mockReply],
+                lastMessageTime: new Date().toISOString(),
+                unreadCount: activeChatId === chatId ? 0 : c.unreadCount + 1
+              };
+            }
+            return c;
+          });
         });
-      });
 
-      // Show notification if chat is not open
-      if (activeChatId !== chatId) {
-        setNotifications((prev) => [
-          {
-            id: `not_${Date.now()}`,
-            title: `Message from ${recipientName}`,
-            description: responseText.length > 50 ? `${responseText.substring(0, 47)}...` : responseText,
-            type: 'message',
-            date: 'Just now',
-            read: false,
-            link: '/chat'
-          },
-          ...prev
-        ]);
-      }
-    }, 2000);
+        if (activeChatId !== chatId) {
+          setNotifications((prev) => [
+            {
+              id: `not_${Date.now()}`,
+              title: `Message from ${recipientName}`,
+              description: responseText.length > 50 ? `${responseText.substring(0, 47)}...` : responseText,
+              type: 'message',
+              date: 'Just now',
+              read: false,
+              link: '/chat'
+            },
+            ...prev
+          ]);
+        }
+      }, 1200);
+    }
   };
 
   // Start chat with seller from Product Details
